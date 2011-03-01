@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>Bee and flowers</title>
+        <script type="text/javascript" src="jquery-1.4.2.min.js"></script>
+        <style>
+@font-face {
+	font-family: Delicious;
+	src: url('Delicious-Roman.otf');
+}
+body {
+    font-family: Delicious;
+    color: #333;
+    background: #EEE;
+    margin: 30px;
+}
+h1 {
+  padding-left: 20px;
+}
+
+#wrapper {
+		width: 600px;
+		margin: 0 auto;
+		text-align: center;
+}
+
+#gameContainer {
+		position: relative;
+		width: 600px;
+		height: 400px;
+}
+
+#game {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 1;
+}
+
+#beeCode textarea {
+  position: absolute;
+	top: 0;
+	left: 0;
+	width: 600px;
+	height: 400px;
+	opacity: 0.8;
+	z-index: 5;
+}
+#beeCode button {
+		position: absolute;
+		right: 20px;
+		top: 5px;
+		z-index: 10;
+}
+.actions {
+		padding: 5px;
+		width: 600px;
+		text-align: center;
+}
+.actions a {
+		text-decoration: none;
+		color: #060;
+}
+
+.gameStatus {
+		padding: 10px;
+}
+.gameStatus a {
+		text-decoration: none;
+		color: #33a;
+}
+.collisionFail {
+		color: #c00;
+}
+
+        </style>
+    </head>
+    <body>
+				<div id="wrapper">
+						<h1>Bee, Hornets and flowers</h1>
+						<h2>Programming AI using Web Workers</h2>
+						
+						<div class="gameStatus" style="display: none;">
+								<h3 class="collisionFail" style="display: none;">Hornet collision, you fail !</h3>
+								<h3 class="scoreContainer" style="display: none;">You made a <span class="score"></span> score !</h3>
+								<a href="index.html">Try again</a>
+						</div>
+						
+						<div class="actions">
+								<a class="showCode" href="javascript:;">Show me the code</a>
+								<a class="showGame" href="javascript:;" style="display: none;">Show me the game</a>
+						</div>
+						
+						<div id="gameContainer">
+						<canvas id="game" width="600" height="400"></canvas>
+						<div id="beeCode" style="display: none;">
+								<button>Run</button>
+				<textarea>
+var log = function(obj) {
+    postMessage(["debug", obj])
+}
+
+onmessage = function(message) {
+    switch(message.data[0]) {
+        case "tick" :
+        tick(message.data[1], message.data[2])
+        break;
+    }
+}
+
+var move = function(angle, speed) {
+    postMessage(["move", {angle: angle, speed: speed}])
+}
+
+var distance = function(pos1, pos2) {
+    var dx = pos1.x - pos2.x, dy = pos1.y - pos2.y;
+    return Math.sqrt(dx*dx+dy*dy);
+}
+
+var lastAngle = null;
+
+tick = function(bee, flowers) {
+    var angle = null;
+    var speed = 0;
+    
+    var closestFlower = null;
+    var closestDistance = null;
+    
+    for(var f in flowers) {
+        var flower = flowers[f];
+        if(flower.pollen) {
+            if(!closestFlower) {
+                closestFlower = flower;
+                closestDistance = distance(flower, bee);
+            }
+            else {
+                var newDistance = distance(flower, bee);
+                if(closestDistance > newDistance) {
+                    closestFlower = flower;
+                    closestDistance = newDistance;
+                }
+            }
+        }
+    }
+    
+    if(closestFlower && closestDistance>5) {
+        speed = 0;
+        var dx = closestFlower.x - bee.x;
+        var dy = closestFlower.y - bee.y;
+        
+        if(dx==0) {
+            if(dy>0) {
+                speed = 1;
+                angle = Math.PI / 2;
+            }
+            else if(dy<0){
+                speed = 1;
+                angle = -Math.PI / 2;
+            }
+        }
+        else if(dx<0) {
+            if(dy>=0) {
+              speed = 1;
+                angle = Math.atan(dy/dx) + Math.PI;
+            }
+            else {
+              speed = 1;
+              angle = Math.atan(dy/dx) - Math.PI;
+            }
+        }
+        else {
+            speed = 1;
+            angle = Math.atan(dy/dx);
+        }
+    }
+    
+    move(angle, speed);
+}</textarea></div>
+	
+						</div>
+				</div>		
+	
+        <script type="text/javascript">
+        $(function(){
+          
+          // Constants
+          var NB_FLOWERS = 20;
+          
+	  var MAX_BEE_SPEED = 2;
+          
+	  var POLLEN_CONSUMPTION_DISTANCE = 5;
+	  var POLLEN_CONSUMPTION_SPEED = 0.02;
+		
+		var HORNET_COLLISION_DISTANCE = 20;
+	  
+          var NB_HORNETS = 2;
+          var MAX_HORNET_SPEED = 2;
+          var HORNET_ANGLE_UPDATE_FREQ = 10;
+	  
+          // Globals
+          var ctx = $('#game')[0].getContext('2d');
+          var flowers = [];
+          var hornets = [];
+          var bee = {};
+	  
+          // utils
+	  var restrictValue = function(value, min, max) {
+	    if(value<min) return min;
+	    if(value>max) return max;
+	    return value;
+	  };
+          
+          var distance = function(pos1, pos2) {
+	    var dx = pos1.x - pos2.x, dy = pos1.y - pos2.y;
+	    return Math.sqrt(dx*dx+dy*dy);
+	  }
+          
+          // graphicals
+          var drawBackground = function() {
+            ctx.fillStyle = '#9fb';
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          }
+          var drawFlowers = function() {
+            for(var f in flowers) {
+              var flower = flowers[f];
+	    
+	      ctx.save();
+	      ctx.fillStyle = "#fff";
+	      ctx.translate(flower.x, flower.y);
+              for(var i=0; i<8; i++) {
+                ctx.beginPath();
+                ctx.rotate(2*Math.PI/8);
+                ctx.arc(15, 0, 5, 0, 2*Math.PI, false);
+                ctx.fill();
+              }
+              ctx.restore();
+            }
+            for(var f in flowers) {
+              var flower = flowers[f];
+	      var pollen = (100+Math.floor(120*flower.pollen)).toString(16);
+	      if(pollen.length==0) pollen = "00";
+	      else if(pollen.length==1) pollen = "0"+pollen;
+              ctx.fillStyle = '#ff'+pollen+'00';
+	      ctx.beginPath();
+	      ctx.arc(flower.x, flower.y, 10, 10, 0, 2*Math.PI, false);
+	      ctx.fill();
+            }
+          }
+          var drawHornets = function() {
+            for(var h in hornets) {
+              var hornet = hornets[h];
+              ctx.save();
+              ctx.fillStyle = "#930";
+              ctx.translate(hornet.x, hornet.y);
+              ctx.rotate(hornet.angle);
+              ctx.scale(1, 0.5);
+              ctx.beginPath();
+              ctx.arc(0, 0, 14, 0, 2*Math.PI, false);
+              ctx.fill();
+              ctx.fillStyle = "#ca0";
+              ctx.beginPath();
+              ctx.arc(-2, 0, 8, 0, 2*Math.PI, false);
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+          var drawBee = function() {
+            ctx.save();
+	    ctx.fillStyle = "rgba(0,0,0,0.8)";
+	    ctx.translate(bee.x, bee.y);
+	    ctx.rotate(bee.angle);
+	    ctx.scale(1, 0.5);
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, 2*Math.PI, false);
+            ctx.fill();
+            ctx.restore();
+          }
+          
+          // algorithms
+          var moveBee = function() {
+	    if(bee.speed) {
+		bee.x = restrictValue(bee.x + Math.cos(bee.angle) * bee.speed * MAX_BEE_SPEED, 0, ctx.canvas.width);
+		bee.y = restrictValue(bee.y + Math.sin(bee.angle) * bee.speed * MAX_BEE_SPEED, 0, ctx.canvas.height);
+	    }
+	  }
+          
+          var moveHornets = function() {
+            for(var h in hornets) {
+              var hornet = hornets[h];
+              var speed = 1;
+              hornet.x = restrictValue(hornet.x + Math.cos(hornet.angle) * speed * MAX_HORNET_SPEED, 0, ctx.canvas.width);
+	      hornet.y = restrictValue(hornet.y + Math.sin(hornet.angle) * speed * MAX_HORNET_SPEED, 0, ctx.canvas.height);
+            }
+          }
+	  
+		var hasHornetCollision = function() {
+				var hcd2 = HORNET_COLLISION_DISTANCE*HORNET_COLLISION_DISTANCE;
+				for(var h in hornets) {
+            var hornet = hornets[h];
+						var dx = hornet.x - bee.x;
+						var dy = hornet.y - bee.y;
+						if(dx*dx+dy*dy <= hcd2)
+								return true;
+				}
+				return false;
+		}
+		
+		var generateNewHornetAngle = function(hornet) {
+	    var angle = hornet.angle;
+	    while(angle < 0)
+		angle += 2*Math.PI;
+	    while(angle > 2*Math.PI)
+		angle -= 2*Math.PI;
+	    hornet.angle = angle;
+	    var angleBetween = function(a, b) {
+		if(a>b) {
+		    var tmp = b;
+		    b = a;
+		    a = tmp;
+		}
+		return a<=hornet.angle && hornet.angle<=b;
+	    }
+            var range = Math.PI / 3;
+            var factor = range*Math.random();
+	    var margin = 60;
+	    
+	    if(hornet.x < margin && angleBetween(Math.PI/2, 3*Math.PI/2)) {
+		if(hornet.angle>Math.PI) {
+		    hornet.angle += factor;
+		}
+		else {
+		    hornet.angle -= factor;
+		}
+	    }
+	    else if(hornet.y > ctx.canvas.height-margin && angleBetween(0, Math.PI)) {
+		if(hornet.angle>Math.PI/2) {
+		    hornet.angle += factor;
+		}
+		else {
+		    hornet.angle -= factor;
+		}
+	    }
+	    else if((hornet.x > ctx.canvas.width-margin) && (angleBetween(0, Math.PI/2) || angleBetween(3*Math.PI/2, 2*Math.PI))) {
+		if(hornet.angle<Math.PI) {
+		    hornet.angle += factor;
+		}
+		else {
+		    hornet.angle -= factor;
+		}
+	    }
+	    else if(hornet.y < margin && angleBetween(Math.PI, 2*Math.PI)) {
+		if(hornet.angle>3*Math.PI/2) {
+		    hornet.angle += factor;
+		}
+		else {
+		    hornet.angle -= factor;
+		}
+	    }
+	    else {
+		hornet.angle += factor-range/2;
+	    }
+          }
+          
+          var consumFlowers = function() {
+	    var closestFlower = null;
+	    var closestDistance = null;
+            for(var f in flowers) {
+              var flower = flowers[f];
+              if(flower.pollen) {
+                if(!closestFlower) {
+                  closestFlower = flower;
+                  closestDistance = distance(flower, bee);
+                }
+                else {
+                  var newDistance = distance(flower, bee);
+                  if(closestDistance > newDistance) {
+                    closestFlower = flower;
+                    closestDistance = newDistance;
+                  }
+                }
+              }
+            }
+              
+            if(closestFlower && closestDistance<=POLLEN_CONSUMPTION_DISTANCE) {
+              closestFlower.pollen -= POLLEN_CONSUMPTION_SPEED;
+              if(closestFlower.pollen<=0) {
+                closestFlower.pollen = 0;
+              }
+            }
+          }        
+          
+          
+          // MAIN //
+          
+	  bee.x = ctx.canvas.width / 2;
+          bee.y = ctx.canvas.height / 2;
+          bee.angle = 0;
+          bee.speed = 0;
+          
+          for(var i = 0; i < NB_FLOWERS; ++i) {
+            var margin = 20;
+            var x = Math.floor(margin + Math.random() * (ctx.canvas.width-2*margin));
+            var y = Math.floor(margin + Math.random() * (ctx.canvas.height-2*margin));
+            var flower = { x: x, y: y, pollen: 1 };
+            flowers.push(flower);
+          }
+          for(var i=0; i < NB_HORNETS; ++i) {
+            var margin = 20;
+            var center = {x: ctx.canvas.width/2, y: ctx.canvas.height/2};
+            
+            do {
+              var x = Math.floor(margin + Math.random() * (ctx.canvas.width-2*margin));
+              var y = Math.floor(margin + Math.random() * (ctx.canvas.height-2*margin));
+              var hornet = { x: x, y: y };
+            } while(distance(hornet, center)<50);
+            hornet.angle = 0;
+            hornets.push(hornet);
+          }
+	  
+	  var countOnmessageCall = 0;
+	  var maxOnmessageBySecond = 100;
+	  setInterval(function(){
+	    countOnmessageCall = 0;
+	  }, 1000);
+	  
+	  var worker = new Worker("ai.js");
+	  worker.onmessage = function(message) {
+	    if(message.data && message.data[0]) {
+		switch(message.data[0]) {
+		    case "debug":
+		    console.log(message.data[1]);
+		    break;
+		    case "move":
+		    var move = message.data[1];
+                    if(typeof(move.angle)!='undefined' && move.angle!==null)
+                      bee.angle = move.angle;
+                    bee.speed = restrictValue(move.speed, 0, 1) || 0;
+		}
+	    }
+	    if(countOnmessageCall++ > maxOnmessageBySecond) {
+		worker.terminate();
+		alert("worker terminated due to postMessage spamming");
+	    }
+	  }
+	  
+          var i = 0;
+	  var intervalID = setInterval(function(){
+	    worker.postMessage(["tick", bee, flowers]);
+	    
+            if(i % HORNET_ANGLE_UPDATE_FREQ ==0) {
+              for(var h in hornets)
+		generateNewHornetAngle(hornets[h]);
+            }
+            
+            consumFlowers();
+            moveHornets();
+            moveBee();
+            
+						
+	    drawBackground();
+	    drawFlowers();
+            drawHornets();
+	    drawBee();
+			
+			
+			
+			if(false/*allFlowersConsumed()*/) {
+				clearInterval(intervalID);
+				$('.gameStatus').show();
+				$('.scoreContainer').show();
+				$('.scoreContainer .score').text(Math.floor(10000/i));
+			}
+			
+			if(hasHornetCollision()) {
+				clearInterval(intervalID);
+				$('.gameStatus').show();
+				$('.collisionFail').show();
+			}
+            
+            ++i;
+	  }, 20);
+          
+					
+					$('.showGame').click(function(){
+						$('#beeCode').hide();
+						$(this).hide();
+						$('.showCode').show();
+					})
+					$('.showCode').click(function(){
+						$('#beeCode').show();
+						$(this).hide();
+						$('.showGame').show();
+					})
+					
+        });
+        </script>
+    </body>
+</html>
