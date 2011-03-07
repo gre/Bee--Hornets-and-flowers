@@ -264,15 +264,66 @@ tick = function(bee, flowers) {
               ctx.restore();
             }
           }
-          var drawBee = function() {
+          var drawBee = function(i) {
             ctx.save();
-	    ctx.fillStyle = "rgba(0,0,0,0.8)";
-	    ctx.translate(bee.x, bee.y);
-	    ctx.rotate(bee.angle);
-	    ctx.scale(1, 0.5);
+						ctx.translate(bee.x, bee.y);
+						ctx.rotate(bee.angle);
+						
+						// Pattes
+						ctx.fillStyle = "#000";
+						ctx.lineWidth = 1;
+						for(var sym=-1; sym<=1; sym+=2) {
+								for(var patte=0; patte<2; ++patte) {
+										ctx.beginPath();
+										ctx.moveTo(5*patte-2,0);
+										ctx.lineTo(5*patte-10,sym*6);
+										ctx.stroke();
+								}
+						}
+						
+						// Corps
+						
+						ctx.fillStyle = "#432";
+						ctx.save();
+						ctx.translate(-6, 0);
+						ctx.scale(1, 0.5);
             ctx.beginPath();
-            ctx.arc(0, 0, 8, 0, 2*Math.PI, false);
+            ctx.arc(0, 0, 7, 0, 2*Math.PI, false);
             ctx.fill();
+						ctx.restore();
+						
+						ctx.fillStyle = "#A70";
+						ctx.save();
+						ctx.translate(0, 0);
+						ctx.scale(1, 0.9);
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, 2*Math.PI, false);
+            ctx.fill();
+						ctx.restore();
+						
+						ctx.fillStyle = "#000";
+						ctx.save();
+						ctx.translate(5, 0);
+						ctx.scale(0.8, 1);
+						ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, 2*Math.PI, false);
+            ctx.fill();
+						ctx.restore();
+						
+						// Ailes
+						ctx.fillStyle = "rgba(100,100,100,0.4)";
+						for(var sym=-1; sym<=1; sym+=2) {
+								ctx.save();
+								ctx.translate(0, sym*8);
+								var rot = Math.sin(sym*i*1.5)/4;
+								ctx.rotate(rot);
+								ctx.scale(0.4, 1);
+								ctx.beginPath();
+								ctx.arc(0, 0, 6, 0, 2*Math.PI, false);
+								ctx.fill();
+								ctx.restore();
+						}
+						
             ctx.restore();
           }
           
@@ -456,11 +507,11 @@ tick = function(bee, flowers) {
             moveHornets();
             moveBee();
             
-						
+				
 	    drawBackground();
 	    drawFlowers();
             drawHornets();
-	    drawBee();
+	    drawBee(i);
 			
 			
 			
