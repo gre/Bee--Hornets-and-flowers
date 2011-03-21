@@ -183,8 +183,11 @@ tick = function(bee, flowers) {
         <script type="text/javascript">
         $(function(){
           
+					var grassImage = new Image();
+					grassImage.src = 'grass.jpg';
+					
           // Constants
-          var NB_FLOWERS = 20;
+          var NB_FLOWERS = 10;
           
 	  var MAX_BEE_SPEED = 2;
           
@@ -202,7 +205,10 @@ tick = function(bee, flowers) {
           var flowers = [];
           var hornets = [];
           var bee = {};
+					
+					var lastFlowerConsumation = -99999999; // last consumation of flower in cycles
 	  
+		
           // utils
 	  var restrictValue = function(value, min, max) {
 	    if(value<min) return min;
@@ -217,16 +223,30 @@ tick = function(bee, flowers) {
           
           // graphicals
           var drawBackground = function() {
-            ctx.fillStyle = '#9fb';
+            ctx.save();
+						ctx.fillStyle = ctx.createPattern(grassImage, 'repeat');
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+						ctx.restore();
           }
           var drawFlowers = function() {
-            for(var f in flowers) {
+            ctx.save();
+						for(var f in flowers) {
               var flower = flowers[f];
-	    
-	      ctx.save();
-	      ctx.fillStyle = "#fff";
-	      ctx.translate(flower.x, flower.y);
+							ctx.save();
+							ctx.translate(flower.x, flower.y);
+							ctx.strokeStyle = '#274500';
+							ctx.lineWidth = 3;
+							ctx.beginPath();
+							ctx.moveTo(-30, 80);
+							ctx.bezierCurveTo(-25, 30, 0, 0, 0, 0);
+							ctx.stroke();
+							ctx.restore();
+						}
+						for(var f in flowers) {
+              var flower = flowers[f];
+							ctx.save();
+							ctx.translate(flower.x, flower.y);
+							ctx.fillStyle = "#fff";
               for(var i=0; i<8; i++) {
                 ctx.beginPath();
                 ctx.rotate(2*Math.PI/8);
@@ -235,16 +255,22 @@ tick = function(bee, flowers) {
               }
               ctx.restore();
             }
-            for(var f in flowers) {
-              var flower = flowers[f];
-	      var pollen = (100+Math.floor(120*flower.pollen)).toString(16);
-	      if(pollen.length==0) pollen = "00";
-	      else if(pollen.length==1) pollen = "0"+pollen;
-              ctx.fillStyle = '#ff'+pollen+'00';
-	      ctx.beginPath();
-	      ctx.arc(flower.x, flower.y, 10, 10, 0, 2*Math.PI, false);
-	      ctx.fill();
+						for(var f in flowers) {
+							var flower = flowers[f];
+							var pollen = (100+Math.floor(120*flower.pollen)).toString(16);
+							if(pollen.length==0) pollen = "00";
+							else if(pollen.length==1) pollen = "0"+pollen;
+										ctx.fillStyle = '#ff'+pollen+'00';
+							ctx.beginPath();
+							ctx.arc(flower.x, flower.y, 10, 10, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.lineWidth = 1;
+							ctx.strokeStyle = '#37550d';
+							ctx.beginPath();
+							ctx.arc(flower.x, flower.y, 10, 10, 0, 2*Math.PI, false);
+							ctx.stroke();
             }
+						ctx.restore();
           }
           var drawHornets = function() {
             for(var h in hornets) {
@@ -253,14 +279,81 @@ tick = function(bee, flowers) {
               ctx.fillStyle = "#930";
               ctx.translate(hornet.x, hornet.y);
               ctx.rotate(hornet.angle);
-              ctx.scale(1, 0.5);
-              ctx.beginPath();
-              ctx.arc(0, 0, 14, 0, 2*Math.PI, false);
-              ctx.fill();
-              ctx.fillStyle = "#ca0";
-              ctx.beginPath();
-              ctx.arc(-2, 0, 8, 0, 2*Math.PI, false);
-              ctx.fill();
+              
+							// Pattes
+							ctx.fillStyle = "#930";
+							ctx.lineWidth = 1;
+							for(var sym=-1; sym<=1; sym+=2) {
+									for(var patte=0; patte<2; ++patte) {
+											ctx.beginPath();
+											ctx.moveTo(6*patte,0);
+											ctx.lineTo(6*patte-15,sym*6);
+											ctx.stroke();
+									}
+							}
+							
+							// Corps
+							ctx.fillStyle = "#820";
+							ctx.save();
+							ctx.translate(-10, 0);
+							ctx.scale(1.2, 0.6);
+							ctx.beginPath();
+							ctx.arc(0, 0, 7, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.restore();
+							
+							ctx.fillStyle = "#cc0";
+							ctx.save();
+							ctx.translate(-14, 0);
+							ctx.scale(1, 1.5);
+							ctx.beginPath();
+							ctx.arc(0, 0, 2, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.restore();
+							
+							ctx.fillStyle = "#a20";
+							ctx.save();
+							ctx.translate(0, 0);
+							ctx.scale(1, 0.9);
+							ctx.beginPath();
+							ctx.arc(0, 0, 5, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.restore();
+							
+							ctx.fillStyle = "#510";
+							ctx.save();
+							ctx.translate(5, 0);
+							ctx.scale(0.8, 1.2);
+							ctx.beginPath();
+							ctx.arc(0, 0, 4, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.restore();
+							
+							// Ailes
+							ctx.fillStyle = "rgba(100,100,100,0.2)";
+							for(var sym=-1; sym<=1; sym+=2) {
+									ctx.save();
+									ctx.translate(-4, sym*8);
+									var rot = (Math.PI/6)*sym+Math.sin(sym*i*1.3)/4;
+									ctx.rotate(rot);
+									ctx.scale(0.3, 1);
+									ctx.beginPath();
+									ctx.arc(0, 0, 8, 0, 2*Math.PI, false);
+									ctx.fill();
+									ctx.restore();
+							}
+							ctx.fillStyle = "rgba(150,50,0,0.4)";
+							for(var sym=-1; sym<=1; sym+=2) {
+									ctx.save();
+									ctx.translate(0, sym*8);
+									var rot = Math.sin(sym*(i+1)*1.6)/4;
+									ctx.rotate(rot);
+									ctx.scale(0.4, 1.2);
+									ctx.beginPath();
+									ctx.arc(0, 0, 8, 0, 2*Math.PI, false);
+									ctx.fill();
+									ctx.restore();
+							}
               ctx.restore();
             }
           }
@@ -326,6 +419,57 @@ tick = function(bee, flowers) {
 						
             ctx.restore();
           }
+					
+					var particles = [];
+					var generateParticles = function() {
+						
+						var Particle = function(pos, move, life) {
+							this.x = pos.x;
+							this.y = pos.y;
+							this.dx = !move||!move.x ? 0 : move.x;
+							this.dy = !move||!move.y ? 0 : move.y;
+							this.life = life;
+							
+							this.cycle = function(i) {
+								this.x += this.dx;
+								this.y += this.dy;
+								-- this.life;
+							}
+						}
+						
+						var cycle = function(i) {
+							var newParticles = []
+							if(0<lastFlowerConsumation) {
+								if(lastFlowerConsumation<50 || i%2 && lastFlowerConsumation<80)
+									newParticles.push( new Particle({x: bee.x, y: bee.y}, {x: Math.random()*0.8, y: Math.random()*0.8}, 80) );
+							}
+							for(var p in particles) {
+								particles[p].cycle(i);
+								if(particles[p].life>0)
+									newParticles.push(particles[p]);
+							}
+							particles = newParticles;
+						}
+						
+						return function(i) {
+							cycle(i);
+						}
+					}()
+					
+					var drawParticles = function() {
+						for(var p in particles) {
+							var particle = particles[p];
+							//console.log(particle);
+							ctx.save();
+							ctx.globalAlpha = particle.life < 20 ? particle.life/100 : 0.2;
+							ctx.fillStyle = 'rgb(240,220,80)';
+							ctx.translate(particle.x, particle.y);
+							ctx.beginPath();
+							ctx.arc(0, 0, 2, 0, 2*Math.PI, false);
+							ctx.fill();
+							ctx.restore();
+						}
+					}
           
           // algorithms
           var moveBee = function() {
@@ -413,6 +557,7 @@ tick = function(bee, flowers) {
           }
           
           var consumFlowers = function() {
+						++ lastFlowerConsumation;
 	    var closestFlower = null;
 	    var closestDistance = null;
             for(var f in flowers) {
@@ -434,6 +579,7 @@ tick = function(bee, flowers) {
               
             if(closestFlower && closestDistance<=POLLEN_CONSUMPTION_DISTANCE) {
               closestFlower.pollen -= POLLEN_CONSUMPTION_SPEED;
+							lastFlowerConsumation = 0;
               if(closestFlower.pollen<=0) {
                 closestFlower.pollen = 0;
               }
@@ -503,14 +649,15 @@ tick = function(bee, flowers) {
 		generateNewHornetAngle(hornets[h]);
             }
             
-            consumFlowers();
-            moveHornets();
-            moveBee();
-            
+        consumFlowers();
+        moveHornets();
+        moveBee();
+        generateParticles(i);
 				
 	    drawBackground();
+			drawParticles();
 	    drawFlowers();
-            drawHornets();
+      drawHornets();
 	    drawBee(i);
 			
 			
