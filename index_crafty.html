@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+    <head>
+  <title>Bee and flowers</title>
+        <script type="text/javascript" src="jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="crafty.js"></script>
+
+<script type="text/javascript">
+window.onload = function(){
+// Constants
+var NB_FLOWERS = 10;
+var MIN_DISTANCE_BETWEEN_FLOWERS = 40;
+var POLLEN_CONSUMPTION_DISTANCE = 5;
+var POLLEN_CONSUMPTION_SPEED = 0.02;
+var MAX_BEE_SPEED = 2;
+var NB_HORNETS = 2;
+var MAX_HORNET_SPEED = 2;
+var HORNET_ANGLE_UPDATE_FREQ = 10;
+var HORNET_COLLISION_DISTANCE = 20;
+
+Crafty.init(50, 600, 400);
+Crafty.canvas();
+
+Crafty.c('flower', {
+  init: function() {
+    this.requires('2D');
+    this.pollen = 1;
+  },
+  consume: function() {
+    
+  },
+  getClosestEntity: function(px, py) {
+    var entity=null, dist2;
+    this.each(function(){
+      if(this.pollen <= 0) return;
+      var dx = px - this.x;
+      var dy = py - this.y;
+      var dist2_ = dx*dx+dy*dy;
+      if(entity==null || dist2_<dist2) {
+        dist2 = dist2_;
+        entity = this;
+      }
+    });
+    return !entity ? null : entity;
+  }
+})
+Crafty.c('movable', {
+  init: function() {
+    this.requires('2D');
+    this.speed = 1;
+  },
+  turnLeft: function() {
+    
+  },
+  turnRight: function() {
+    
+  },
+  move: function() {
+    this.x = Math.min(Math.max(this.x + Math.cos(this.rotation) * this.speed, 0), Crafty.viewport.width);
+    this.y = Math.min(Math.max(this.y + Math.sin(this.rotation) * this.speed, 0), Crafty.viewport.height);
+  }
+});
+Crafty.c('bee', {
+  
+})
+Crafty.c('hornet', {
+  
+})
+
+for(var i=0; i<NB_FLOWERS; ++i) {
+  var c = Crafty.e('flower, 2D, Canvas');
+  c.attr({
+    x: ~~ (Math.random()*Crafty.viewport.width),
+    y: ~~ (Math.random()*Crafty.viewport.height)
+  })
+  
+}
+
+console.log(Crafty('flower').getClosestEntity(0, 0));
+
+Crafty.scene("main", function(){
+  Crafty.background("url(grass.jpg)");
+  
+});
+
+Crafty.load(["grass.jpg"], function(){
+  Crafty.scene("main");
+});
+
+}
+</script>
+        <style>
+@font-face {
+  font-family: Delicious;
+  src: url('Delicious-Roman.otf');
+}
+body {
+    font-family: Delicious;
+    color: #333;
+    background: #EEE;
+    margin: 30px;
+}
+h1 {
+  padding-left: 20px;
+}
+
+#wrapper {
+    width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#beeCode textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 600px;
+  height: 400px;
+  opacity: 0.8;
+  z-index: 5;
+}
+#beeCode button {
+    position: absolute;
+    right: 20px;
+    top: 5px;
+    z-index: 10;
+}
+.actions {
+    padding: 5px;
+    width: 600px;
+    text-align: center;
+}
+.actions a {
+    text-decoration: none;
+    color: #060;
+}
+
+.gameStatus {
+    padding: 10px;
+}
+.gameStatus a {
+    text-decoration: none;
+    color: #33a;
+}
+.collisionFail {
+    color: #c00;
+}
+
+        </style>
+    </head>
+    <body>
+        <div id="wrapper">
+            <h1>Bee, Hornets and flowers</h1>
+            <h2>Programming AI using Web Workers</h2>
+
+            <div class="gameStatus" style="display: none;">
+                <h3 class="collisionFail" style="display: none;">Hornet collision, you fail !</h3>
+                <h3 class="scoreContainer" style="display: none;">You made a <strong class="score"></strong> score !</h3>
+                <a href="index.html">Try again</a>
+            </div>
+            
+        </div>
+    </body>
+</html>
